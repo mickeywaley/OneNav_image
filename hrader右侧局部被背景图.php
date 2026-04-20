@@ -27,7 +27,7 @@ body::before {
 <script>
 // 配置项（你可以在后台修改）
 const oneNavBg = {
-    bgUrl: "https://f.xx.com/websq/背景图片地址bj.jpg",      // 默认背景图
+    bgUrl: "https://f.aq520.com/websq/bj.jpg",      // 默认背景图
     maskEnable: true,                           // 是否开启蒙版 true/false
     maskOpacity: 0.3                            // 透明度 0~1
 };
