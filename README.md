@@ -2,6 +2,10 @@
 OneNav导航 背景图 自定义header
 
 
+更新背景图片上传页面 upload.php
+
+----
+
 项目地址
 
 https://github.com/helloxz/onenav
