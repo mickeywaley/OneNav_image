@@ -13,20 +13,19 @@ define('GITHUB_URL', 'https://github.com/mickeywaley/OneNav_image/');
 
 session_start();
 
-// 密码存储
+// 初始化密码（加密存储）
 if (!file_exists(PASS_FILE)) {
-    file_put_contents(PASS_FILE, DEFAULT_PASS);
+    file_put_contents(PASS_FILE, password_hash(DEFAULT_PASS, PASSWORD_DEFAULT));
 }
-$ADMIN_PASS = trim(file_get_contents(PASS_FILE));
-
-if (!is_dir(UPLOAD_DIR)) mkdir(UPLOAD_DIR, 0755, true);
+$ADMIN_HASH = trim(file_get_contents(PASS_FILE));
 
 $msg = '';
 $error = '';
 
-// 登录
+// 登录验证（加密对比）
 if (isset($_POST['login'])) {
-    if (trim($_POST['password']) === $ADMIN_PASS) {
+    $input = trim($_POST['password']);
+    if (password_verify($input, $ADMIN_HASH)) {
         $_SESSION['admin'] = true;
         $msg = '登录成功';
     } else {
@@ -34,21 +33,21 @@ if (isset($_POST['login'])) {
     }
 }
 
-// 修改密码
+// 修改密码（加密存储）
 if (isset($_SESSION['admin']) && isset($_POST['change_pass'])) {
     $old = trim($_POST['old_pass']);
     $new1 = trim($_POST['new_pass1']);
     $new2 = trim($_POST['new_pass2']);
     
-    if ($old !== $ADMIN_PASS) {
+    if (!password_verify($old, $ADMIN_HASH)) {
         $error = '原密码不正确';
     } elseif ($new1 !== $new2) {
         $error = '两次新密码不一致';
     } elseif (strlen($new1) < 4) {
         $error = '密码长度不能小于4位';
     } else {
-        file_put_contents(PASS_FILE, $new1);
-        $msg = '密码修改成功，请牢记新密码';
+        file_put_contents(PASS_FILE, password_hash($new1, PASSWORD_DEFAULT));
+        $msg = '密码修改成功，已加密存储';
     }
 }
 
@@ -108,7 +107,7 @@ function getImageInfo($path)
     return [$w, $h, $kb];
 }
 
-// 上传 (修复刷新重复提交BUG)
+// 上传（修复刷新重复提交）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['admin']) && !empty($_FILES['image']['name'])) {
     $file = $_FILES['image'];
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -130,7 +129,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['admin']) && !empty
             } else {
                 $msg = "上传并压缩成功：{$filename}（{$finalKb}KB）";
             }
-            // 修复刷新重复上传
             header('Location: upload.php');
             exit;
         } else {
@@ -242,7 +240,6 @@ closedir($dh);
         input{padding:10px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text)}
         button{cursor:pointer}
 
-        /* 预览弹窗 */
         .preview-modal{
             display:none;position:fixed;top:0;left:0;width:100%;height:100%;
             background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;padding:20px;
@@ -250,7 +247,6 @@ closedir($dh);
         .preview-modal.show{display:flex}
         .preview-modal img{max-width:100%;max-height:100%;object-fit:contain}
 
-        /* 底部 */
         .footer{text-align:center;color:var(--gray);font-size:12px;margin-top:40px}
         .footer a{color:var(--primary);text-decoration:none}
         .footer a:hover{text-decoration:underline}
@@ -258,7 +254,6 @@ closedir($dh);
 </head>
 <body class="<?= isset($_COOKIE['dark']) ? 'dark' : '' ?>">
 
-<!-- 预览弹窗 -->
 <div class="preview-modal" id="previewModal" onclick="closePreview()">
     <img src="" id="previewImg">
 </div>
@@ -284,7 +279,6 @@ closedir($dh);
         </div>
         <?php endif; ?>
     </div>
-
     <?php if (isset($_SESSION['admin'])): ?>
     <span>管理员已登录</span>
     <?php endif; ?>
@@ -369,23 +363,19 @@ closedir($dh);
 <?php endif; ?>
 
 <div class="footer">
-    <!-- 已修改：文字超链接，不再显示长网址 -->
     <a href="<?= GITHUB_URL ?>" target="_blank">GitHub 开源地址</a>
 </div>
 
 <script>
-// 菜单下拉
 document.getElementById('menuBtn')?.addEventListener('click',()=>{
     document.getElementById('menuDrop').classList.toggle('show')
 })
 
-// 深色模式
 function toggleDark(){
     document.body.classList.toggle('dark')
     document.cookie = 'dark='+(document.body.classList.contains('dark')?1:0)+';path=/;max-age=31536000'
 }
 
-// 预览
 function openPreview(src) {
     document.getElementById('previewImg').src = src;
     document.getElementById('previewModal').classList.add('show');
