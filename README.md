@@ -23,12 +23,12 @@ https://dh.aq520.com/
 
 ----
 
-hrader全透明.php  1.1版本
+hrader全透明.php  1.1版本 顶部也透明
 
 <img src="https://raw.githubusercontent.com/mickeywaley/OneNav_image/refs/heads/main/%E6%BC%94%E7%A4%BA%E5%9B%BE%E7%89%87/hrader1.1%E5%85%A8%E9%80%8F%E6%98%8E.png"   />
 
 
-初始版本
+初始版本   顶部搜索框不透明
 <img src="https://raw.githubusercontent.com/mickeywaley/OneNav_image/refs/heads/main/%E6%BC%94%E7%A4%BA%E5%9B%BE%E7%89%87/%E5%85%A8%E9%80%8F%E6%98%8E%E6%95%88%E6%9E%9C.png" alt="Mobile wallpaper"   />
 
 ----
