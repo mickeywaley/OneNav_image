@@ -108,8 +108,8 @@ function getImageInfo($path)
     return [$w, $h, $kb];
 }
 
-// 上传
-if (isset($_SESSION['admin']) && isset($_FILES['image'])) {
+// 上传 (修复刷新重复提交BUG)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['admin']) && !empty($_FILES['image']['name'])) {
     $file = $_FILES['image'];
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
     $allow = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
@@ -130,6 +130,9 @@ if (isset($_SESSION['admin']) && isset($_FILES['image'])) {
             } else {
                 $msg = "上传并压缩成功：{$filename}（{$finalKb}KB）";
             }
+            // 修复刷新重复上传
+            header('Location: upload.php');
+            exit;
         } else {
             $error = '文件移动失败，请检查目录权限';
         }
@@ -182,62 +185,78 @@ closedir($dh);
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
-<meta charset="UTF-8">
-<title>背景图管理</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
-body{max-width:1000px;margin:20px auto;padding:20px;background:#f5f5f5;padding-bottom:120px}
-.card{background:#fff;padding:20px;border-radius:10px;margin-bottom:20px;box-shadow:0 2px 5px #0000000a}
-h1,h2,h3{margin-bottom:15px;color:#333}
-.msg{color:green;background:#ecffec;padding:10px;border-radius:5px;margin:10px 0}
-.err{color:red;background:#ffeaea;padding:10px;border-radius:5px;margin:10px 0}
-.gray{color:#666;font-size:14px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:15px;margin-top:20px}
-.item{border:1px solid #ddd;border-radius:8px;overflow:hidden;position:relative}
-.item img{width:100%;height:120px;object-fit:cover;cursor:pointer}
-.info{padding:5px;font-size:12px;color:#666}
-.btns{display:flex;gap:5px;padding:5px}
-.btns button{width:100%;padding:5px;font-size:12px;background:#007bff;color:white;border:none;border-radius:4px;cursor:pointer}
-button.danger{background:#dc3545}
-.login{max-width:360px;margin:0 auto}
-input{padding:10px;border:1px solid #ddd;border-radius:5px}
-button{cursor:pointer}
-.current{position:absolute;top:5px;right:5px;background:#28a745;color:white;font-size:12px;padding:2px 6px;border-radius:4px}
+<head>
+    <meta charset="UTF-8">
+    <title>OneNav 背景图管理</title>
+    <style>
+        :root {
+            --bg: #f5f5f5;
+            --card: #fff;
+            --text: #333;
+            --gray: #666;
+            --border: #ddd;
+            --primary: #007bff;
+            --danger: #dc3545;
+            --success: #28a745;
+        }
+        .dark {
+            --bg: #1a1a1a;
+            --card: #2a2a2a;
+            --text: #eee;
+            --gray: #aaa;
+            --border: #444;
+            --primary: #409eff;
+            --danger: #f56c6c;
+            --success: #67c23a;
+        }
 
-/* 图片预览弹窗 */
-.preview-modal{
-    display:none;position:fixed;top:0;left:0;width:100%;height:100%;
-    background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;padding:20px;
-}
-.preview-modal.show{display:flex}
-.preview-modal img{max-width:100%;max-height:100%;object-fit:contain}
+        *{box-sizing:border-box;margin:0;padding:0;font-family:system-ui}
+        body{background:var(--bg);color:var(--text);max-width:1000px;margin:20px auto;padding:20px}
+        .card{background:var(--card);padding:20px;border-radius:10px;margin-bottom:20px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
+        h1,h2,h3{margin-bottom:15px}
+        .msg{color:var(--success);background:rgba(103,194,58,0.1);padding:10px;border-radius:5px;margin:10px 0}
+        .err{color:var(--danger);background:rgba(245,108,108,0.1);padding:10px;border-radius:5px;margin:10px 0}
+        .gray{color:var(--gray);font-size:14px}
+        
+        .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+        .menu{position:relative}
+        .menu-btn{background:var(--primary);color:#fff;border:none;padding:8px 12px;border-radius:5px;cursor:pointer}
+        .menu-dropdown{
+            position:absolute;top:100%;right:0;background:var(--card);border:1px solid var(--border);
+            border-radius:6px;width:200px;padding:10px;display:none;margin-top:5px;z-index:99
+        }
+        .menu-dropdown.show{display:block}
+        .menu-dropdown input{width:100%;padding:8px;margin:6px 0;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text)}
+        .menu-dropdown button{width:100%;margin-top:6px}
 
-/* 底部修改密码 一行样式 */
-.bottom-bar{
-    position:fixed;bottom:30px;left:0;right:0;background:#fff;border-top:1px solid #ddd;padding:10px 20px;
-    display:flex;align-items:center;gap:8px;flex-wrap:wrap;z-index:999
-}
-.bottom-bar input{
-    flex:1;min-width:120px
-}
-.bottom-bar button{
-    background:#007bff;color:white;border:none;padding:10px 16px;border-radius:5px;white-space:nowrap
-}
+        .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:15px;margin-top:20px}
+        .item{border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative}
+        .item img{width:100%;height:120px;object-fit:cover;cursor:pointer}
+        .info{padding:5px;font-size:12px;color:var(--gray)}
+        .btns{display:flex;gap:5px;padding:5px}
+        .btns button{width:100%;padding:5px;font-size:12px;background:var(--primary);color:#fff;border:none;border-radius:4px;cursor:pointer}
+        button.danger{background:var(--danger)}
+        .current{position:absolute;top:5px;right:5px;background:var(--success);color:#fff;font-size:12px;padding:2px 6px;border-radius:4px}
 
-/* GitHub 地址 */
-.github-footer{
-    position:fixed;bottom:0;left:0;right:0;background:#fff;padding:8px 20px;text-align:center;
-    border-top:1px solid #eee;font-size:12px;color:#666;z-index:998
-}
-.github-footer a{
-    color:#007bff;text-decoration:none
-}
-.github-footer a:hover{
-    text-decoration:underline
-}
-</style>
+        .login{max-width:360px;margin:0 auto}
+        input{padding:10px;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--text)}
+        button{cursor:pointer}
 
-<body>
+        /* 预览弹窗 */
+        .preview-modal{
+            display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+            background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;padding:20px;
+        }
+        .preview-modal.show{display:flex}
+        .preview-modal img{max-width:100%;max-height:100%;object-fit:contain}
+
+        /* 底部 */
+        .footer{text-align:center;color:var(--gray);font-size:12px;margin-top:40px}
+        .footer a{color:var(--primary);text-decoration:none}
+        .footer a:hover{text-decoration:underline}
+    </style>
+</head>
+<body class="<?= isset($_COOKIE['dark']) ? 'dark' : '' ?>">
 
 <!-- 预览弹窗 -->
 <div class="preview-modal" id="previewModal" onclick="closePreview()">
@@ -245,14 +264,29 @@ button{cursor:pointer}
 </div>
 
 <div class="card">
-    <h1>📷 导航站背景图管理</h1>
-    <?php if (isset($_SESSION['admin'])): ?>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-            <span>管理员已登录</span>
-            <a href="?logout=1" onclick="return confirm('确定退出？')">
-                <button class="danger">退出登录</button>
-            </a>
+    <div class="header">
+        <h1>📷 OneNav 背景图管理</h1>
+        <?php if (isset($_SESSION['admin'])): ?>
+        <div class="menu">
+            <button class="menu-btn" id="menuBtn">菜单 ⚙️</button>
+            <div class="menu-dropdown" id="menuDrop">
+                <button class="danger" onclick="location.href='?logout=1'">退出登录</button>
+                <hr style="margin:10px 0;border-color:var(--border)">
+                <form method="post">
+                    <input type="password" name="old_pass" placeholder="原密码" required>
+                    <input type="password" name="new_pass1" placeholder="新密码" required>
+                    <input type="password" name="new_pass2" placeholder="确认新密码" required>
+                    <button type="submit" name="change_pass">修改密码</button>
+                </form>
+                <hr style="margin:10px 0;border-color:var(--border)">
+                <button onclick="toggleDark()">切换深色/浅色</button>
+            </div>
         </div>
+        <?php endif; ?>
+    </div>
+
+    <?php if (isset($_SESSION['admin'])): ?>
+    <span>管理员已登录</span>
     <?php endif; ?>
 </div>
 
@@ -297,7 +331,7 @@ button{cursor:pointer}
 </div>
 
 <div class="card">
-    <h3>📂 所有背景图片（点击图片预览）</h3>
+    <h3>📂 所有背景图片（点击预览）</h3>
     <?php if (empty($images)): ?>
         <p>暂无图片</p>
     <?php else: ?>
@@ -306,7 +340,7 @@ button{cursor:pointer}
         <?php [$w,$h,$kb] = getImageInfo($img); ?>
         <div class="item">
             <?php if ($img === TARGET_NAME): ?>
-                <span class="current">默认</span>
+            <span class="current">默认</span>
             <?php endif; ?>
             
             <img src="<?= $img ?>?t=<?=time()?>" onclick="openPreview('<?= $img ?>?t=<?=time()?>')">
@@ -332,22 +366,26 @@ button{cursor:pointer}
     <?php endif; ?>
 </div>
 
-<!-- 底部一行修改密码 -->
-<form method="post" class="bottom-bar">
-    <input type="password" name="old_pass" placeholder="原密码" required>
-    <input type="password" name="new_pass1" placeholder="新密码" required>
-    <input type="password" name="new_pass2" placeholder="确认新密码" required>
-    <button type="submit" name="change_pass">修改密码</button>
-</form>
-
 <?php endif; ?>
 
-<!-- GitHub 开源地址 -->
-<div class="github-footer">
-    开源项目：<a href="<?= GITHUB_URL ?>" target="_blank"><?= GITHUB_URL ?></a>
+<div class="footer">
+    <!-- 已修改：文字超链接，不再显示长网址 -->
+    <a href="<?= GITHUB_URL ?>" target="_blank">GitHub 开源地址</a>
 </div>
 
 <script>
+// 菜单下拉
+document.getElementById('menuBtn')?.addEventListener('click',()=>{
+    document.getElementById('menuDrop').classList.toggle('show')
+})
+
+// 深色模式
+function toggleDark(){
+    document.body.classList.toggle('dark')
+    document.cookie = 'dark='+(document.body.classList.contains('dark')?1:0)+';path=/;max-age=31536000'
+}
+
+// 预览
 function openPreview(src) {
     document.getElementById('previewImg').src = src;
     document.getElementById('previewModal').classList.add('show');
