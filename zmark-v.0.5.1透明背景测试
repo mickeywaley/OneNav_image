@@ -1,0 +1,66 @@
+<style>
+/* 核心背景：永久锁定，永不丢失 */
+html {
+    background: url("https://f.aq520.com/websq/bj.jpg") !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-attachment: fixed !important;
+    background-color: #000 !important;
+}
+
+/* 全局强制清空所有背景、遮罩、阴影、渐变 */
+* {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    border: none !important;
+    outline: none !important;
+    transition: none !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    mix-blend-mode: normal !important;
+}
+
+/* 专门清理框架彩色残影、滚动阴影 */
+.ant-layout,
+.ant-layout-header,
+.ant-layout-sider,
+.ant-layout-content,
+.ant-menu,
+.ant-menu-item,
+.ant-layout-sider-children,
+div,
+section,
+main,
+aside,
+header {
+    background: transparent !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    outline: 0 !important;
+    text-shadow: none !important;
+}
+
+/* 文字颜色保留白色 */
+* {
+    color: #fff !important;
+}
+
+/* 隐藏加载层 */
+#app-loading {
+    display: none !important;
+}
+</style>
+
+<!-- 强制锁死背景，刷新永远不黑屏 -->
+<script>
+// 高频强制修复背景
+const lockBackground = () => {
+  document.documentElement.style.background = 'url("https://f.aq520.com/websq/bj.jpg") center/cover fixed !important';
+};
+lockBackground();
+setInterval(lockBackground, 1); // 1毫秒锁定，框架绝对覆盖不了
+</script>
